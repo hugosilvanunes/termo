@@ -3,14 +3,13 @@ package config
 import (
 	"log"
 
-	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 )
 
 type Config struct {
-	Log *zap.Logger
-	Env EnvVars
-	DB  *sqlx.DB
+	Log  *zap.Logger
+	Env  EnvVars
+	Repo *Repo
 }
 
 func New() (*Config, error) {
@@ -20,7 +19,7 @@ func New() (*Config, error) {
 		return nil, err
 	}
 
-	logger, err := NewLogger()
+	logger, err := NewLogger(envVars.ENV)
 	if err != nil {
 		log.Print(err)
 		return nil, err
@@ -32,9 +31,14 @@ func New() (*Config, error) {
 		return nil, err
 	}
 
+	if _, err := db.RunMigrations(); err != nil {
+		logger.Error("cannot run migrations", zap.Error(err))
+		return nil, err
+	}
+
 	return &Config{
-		Env: *envVars,
-		DB:  db,
-		Log: logger,
+		Env:  *envVars,
+		Repo: db,
+		Log:  logger,
 	}, nil
 }
