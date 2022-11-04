@@ -26,13 +26,16 @@ func main() {
 
 	res, err := dicioCli.GetRandomWord()
 	if err != nil {
-		cfg.Log.Fatal("cannot get random word")
+		cfg.Log.Fatal("cannot get random word", zap.Error(err))
 	}
 
 	t := transform.Chain(norm.NFD, transform.RemoveFunc(func(r rune) bool {
 		return unicode.Is(unicode.Mn, r) // Mn: nonspacing marks
 	}), norm.NFC)
-	result, _, _ := transform.String(t, res.Word)
+	result, _, err := transform.String(t, res.Word)
+	if err != nil {
+		cfg.Log.Fatal("cannot normalize string", zap.Error(err))
+	}
 
 	if _, err := cfg.Repo.Create(strings.ToLower(result)); err != nil {
 		cfg.Log.Fatal("cannot create word seed", zap.Error(err))
